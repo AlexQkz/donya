@@ -43,5 +43,5 @@ if __name__ == "__main__":
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
         url_path=TOKEN,
-        webhook_url=f"https://donya.railway.internal.up.railway.app/{TOKEN}"
+        webhook_url=f"https://donya-production.up.railway.app/{TOKEN}"
     )
