@@ -1,51 +1,57 @@
+import openai
 import os
 from flask import Flask, request
-import requests
-import openai
-from dotenv import load_dotenv
+import telegram
+from telegram import Update
+from telegram.ext import CommandHandler, MessageHandler, Filters, Updater
 
-# Load environment variables from .env (optional, useful for local testing)
-load_dotenv()
-
+# Initialize Flask app
 app = Flask(__name__)
 
-# Get tokens from environment
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
+# Set OpenAI API Key from environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Send message to Telegram
-def send_message(chat_id, text):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text}
-    requests.post(url, json=payload)
+# Initialize Telegram Bot with your Bot Token
+bot = telegram.Bot(token=os.getenv("BOT_TOKEN"))
 
-# Handle incoming webhook
-@app.route('/', methods=['POST'])
-def webhook():
-    data = request.get_json()
-
-    if not data or 'message' not in data or 'text' not in data['message']:
-        return "ok"
-
-    chat_id = data['message']['chat']['id']
-    user_message = data['message']['text']
+# Define the function to handle user messages
+def handle_message(update: Update, context):
+    user_message = update.message.text  # Get the text message from the user
 
     try:
-        response = openai.Completion.create(
-            model="text-davinci-003",  # یا مدل دیگه مثل gpt-3.5-turbo
-            prompt=user_message,
-            max_tokens=150  # تعداد کلمات حداکثر در پاسخ
+        # OpenAI API call using the new chat completion method
+        response = openai.chat_completions.create(
+            model="gpt-3.5-turbo",  # You can also use "gpt-4" if you have access
+            messages=[{"role": "user", "content": user_message}]
         )
-        reply = response.choices[0].text.strip()
+        
+        reply = response['choices'][0]['message']['content']
+        update.message.reply_text(reply)  # Send the reply back to the user
+
     except Exception as e:
-        print(f"Error: {e}")  # نمایش خطا
-        reply = "مشکلی پیش اومده. لطفاً بعداً دوباره امتحان کن."
+        print(f"Error: {e}")
+        update.message.reply_text("مشکلی پیش اومده. لطفاً بعداً دوباره امتحان کن.")
 
-        send_message(chat_id, reply)
-        return "ok"
+# Setup the Telegram handler and updater
+def start(update: Update, context):
+    update.message.reply_text("سلام! چطور میتونم به شما کمک کنم؟")
 
-# Run the Flask app (Render needs this)
+def main():
+    updater = Updater(token=os.getenv("BOT_TOKEN"), use_context=True)
+    dispatcher = updater.dispatcher
+
+    # Define the handlers
+    start_handler = CommandHandler('start', start)
+    message_handler = MessageHandler(Filters.text & ~Filters.command, handle_message)
+
+    # Add handlers to the dispatcher
+    dispatcher.add_handler(start_handler)
+    dispatcher.add_handler(message_handler)
+
+    # Start the bot
+    updater.start_polling()
+
+# Run the Flask app
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Render provides PORT as env var
-    app.run(host='0.0.0.0', port=port)
+    main()
+    app.run(debug=True)
