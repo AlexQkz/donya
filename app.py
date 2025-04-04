@@ -10,22 +10,20 @@ from telegram.ext import (
 )
 from dotenv import load_dotenv
 
-# بارگذاری متغیرهای محیطی از فایل .env (برای لوکال)
+# Load environment variables
 load_dotenv()
 
-# گرفتن توکن‌ها از محیط
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
-# هندلر دستور /start
+# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("سلام! چطور می‌تونم کمکت کنم؟")
 
-# هندلر پیام‌های متنی
+# Text message handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_msg = update.message.text
-
     try:
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -35,10 +33,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Error: {e}")
         bot_reply = "مشکلی پیش اومده. لطفاً بعداً دوباره امتحان کن."
-
     await update.message.reply_text(bot_reply)
 
-# راه‌اندازی بات
+# Run bot
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
