@@ -8,49 +8,43 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from flask import Flask
+from dotenv import load_dotenv
 
-# Set up OpenAI API Key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# بارگذاری متغیرهای محیطی از فایل .env (برای لوکال)
+load_dotenv()
 
-# Set up Flask app (if needed for webhook)
-app = Flask(__name__)
+# گرفتن توکن‌ها از محیط
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
 
-# /start command handler
+# هندلر دستور /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("سلام! چطور می‌تونم کمکت کنم؟")
 
-# Handle text messages
+# هندلر پیام‌های متنی
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
+    user_msg = update.message.text
 
     try:
-        response = openai.chat_completions.create(
+        response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_message}]
+            messages=[{"role": "user", "content": user_msg}]
         )
-        reply = response.choices[0].message.content
+        bot_reply = response.choices[0].message.content
     except Exception as e:
         print(f"Error: {e}")
-        reply = "مشکلی پیش اومده. لطفاً بعداً دوباره امتحان کن."
+        bot_reply = "مشکلی پیش اومده. لطفاً بعداً دوباره امتحان کن."
 
-    await update.message.reply_text(reply)
+    await update.message.reply_text(bot_reply)
 
-# Start the bot
-def run_bot():
-    application = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
-
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-
-    application.run_polling()
-
-# Flask route (optional, for webhook confirmation)
-@app.route('/')
-def home():
-    return "Bot is running!"
+# راه‌اندازی بات
+async def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    await app.run_polling()
 
 if __name__ == '__main__':
-    run_bot()
-    # Optional: If you want Flask to serve something
-    # app.run(debug=True)
+    import asyncio
+    asyncio.run(main())
