@@ -32,17 +32,18 @@ def webhook():
     user_message = data['message']['text']
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_message}]
+        response = openai.Completion.create(
+            model="text-davinci-003",  # یا مدل دیگه مثل gpt-3.5-turbo
+            prompt=user_message,
+            max_tokens=150  # تعداد کلمات حداکثر در پاسخ
         )
-        reply = response['choices'][0]['message']['content']
+        reply = response.choices[0].text.strip()
     except Exception as e:
-        print("Error:", e)
+        print(f"Error: {e}")  # نمایش خطا
         reply = "مشکلی پیش اومده. لطفاً بعداً دوباره امتحان کن."
 
-    send_message(chat_id, reply)
-    return "ok"
+        send_message(chat_id, reply)
+        return "ok"
 
 # Run the Flask app (Render needs this)
 if __name__ == '__main__':
