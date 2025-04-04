@@ -1,57 +1,56 @@
-import openai
 import os
-from flask import Flask, request
-import telegram
+import openai
 from telegram import Update
-from telegram.ext import CommandHandler, MessageHandler, Filters, Updater
+from telegram.ext import (
+    ApplicationBuilder,
+    ContextTypes,
+    CommandHandler,
+    MessageHandler,
+    filters,
+)
+from flask import Flask
 
-# Initialize Flask app
-app = Flask(__name__)
-
-# Set OpenAI API Key from environment variable
+# Set up OpenAI API Key
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Initialize Telegram Bot with your Bot Token
-bot = telegram.Bot(token=os.getenv("BOT_TOKEN"))
+# Set up Flask app (if needed for webhook)
+app = Flask(__name__)
 
-# Define the function to handle user messages
-def handle_message(update: Update, context):
-    user_message = update.message.text  # Get the text message from the user
+# /start command handler
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("سلام! چطور می‌تونم کمکت کنم؟")
+
+# Handle text messages
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_message = update.message.text
 
     try:
-        # OpenAI API call using the new chat completion method
         response = openai.chat_completions.create(
-            model="gpt-3.5-turbo",  # You can also use "gpt-4" if you have access
+            model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": user_message}]
         )
-        
-        reply = response['choices'][0]['message']['content']
-        update.message.reply_text(reply)  # Send the reply back to the user
-
+        reply = response.choices[0].message.content
     except Exception as e:
         print(f"Error: {e}")
-        update.message.reply_text("مشکلی پیش اومده. لطفاً بعداً دوباره امتحان کن.")
+        reply = "مشکلی پیش اومده. لطفاً بعداً دوباره امتحان کن."
 
-# Setup the Telegram handler and updater
-def start(update: Update, context):
-    update.message.reply_text("سلام! چطور میتونم به شما کمک کنم؟")
+    await update.message.reply_text(reply)
 
-def main():
-    updater = Updater(token=os.getenv("BOT_TOKEN"), use_context=True)
-    dispatcher = updater.dispatcher
+# Start the bot
+def run_bot():
+    application = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
 
-    # Define the handlers
-    start_handler = CommandHandler('start', start)
-    message_handler = MessageHandler(Filters.text & ~Filters.command, handle_message)
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
-    # Add handlers to the dispatcher
-    dispatcher.add_handler(start_handler)
-    dispatcher.add_handler(message_handler)
+    application.run_polling()
 
-    # Start the bot
-    updater.start_polling()
+# Flask route (optional, for webhook confirmation)
+@app.route('/')
+def home():
+    return "Bot is running!"
 
-# Run the Flask app
 if __name__ == '__main__':
-    main()
-    app.run(debug=True)
+    run_bot()
+    # Optional: If you want Flask to serve something
+    # app.run(debug=True)
