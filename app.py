@@ -25,7 +25,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = update.message.text
     result = query({"inputs": user_input})
-    reply = result[0].get("generated_text", "متأسفم، پاسخی ندارم.")
+    reply = result[0].get("generated_text")
+    if not reply:
+        reply = "متأسفم، پاسخی از مدل دریافت نشد."
     await update.message.reply_text(reply)
 
 def main():
