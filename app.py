@@ -9,19 +9,17 @@ from telegram.ext import (
     filters,
 )
 from dotenv import load_dotenv
+import asyncio
 
-# Load environment variables
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
-# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("سلام! چطور می‌تونم کمکت کنم؟")
 
-# Text message handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_msg = update.message.text
     try:
@@ -35,13 +33,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bot_reply = "مشکلی پیش اومده. لطفاً بعداً دوباره امتحان کن."
     await update.message.reply_text(bot_reply)
 
-# Run bot
-async def main():
+# No asyncio.run here
+def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-    await app.run_polling()
+    app.run_polling()  # No 'await' or asyncio.run
 
 if __name__ == '__main__':
-    import asyncio
-    asyncio.run(main())
+    main()
